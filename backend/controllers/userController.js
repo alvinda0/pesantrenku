@@ -34,21 +34,21 @@ const getAllUsers = async (req, res) => {
 
     // Pengajar bisa lihat semua santri, tapi tidak bisa lihat pengajar lain
     if (currentUser.role === 'pengajar') {
-      // Default hanya tampilkan santri
-      filters.role_name = role === 'pengajar' ? null : 'santri';
-      
       // Jika request untuk melihat pengajar, hanya return data pengajar yang sedang login
       if (role === 'pengajar') {
         const user = await User.findById(currentUser.id);
         if (!user) {
           return errorResponse(res, 'User tidak ditemukan', 404);
         }
-        return successResponse(res, [user], 'Data user berhasil diambil', 200, {
-          page: 1,
-          limit: 1,
-          total: 1
-        });
+        
+        // Build proper pagination metadata even for single user
+        const pagination = buildPaginationMetadata(1, 10, 1);
+        
+        return successResponse(res, [user], 'Data user berhasil diambil', 200, pagination);
       }
+      
+      // Default hanya tampilkan santri
+      filters.role_name = 'santri';
     }
 
     // Add pagination to filters

@@ -28,7 +28,7 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter, statusFilter, pagination.page, pagination.limit]);
+  }, [roleFilter, statusFilter, pagination.page]);
 
   const fetchUsers = async () => {
     try {
@@ -37,7 +37,7 @@ const UserList = () => {
       
       const params: any = {
         page: pagination.page,
-        limit: pagination.limit
+        limit: 10 // Always use fixed limit
       };
       
       if (roleFilter !== 'all') params.role = roleFilter;
@@ -47,9 +47,14 @@ const UserList = () => {
       const response = await userService.getAll(params);
       setUsers(response.data);
       
-      // Update pagination metadata
+      // Update pagination metadata from server
       if (response.metadata) {
-        setPagination(response.metadata);
+        setPagination({
+          page: response.metadata.page || 1,
+          limit: response.metadata.limit || 10,
+          total: response.metadata.total || 0,
+          total_pages: response.metadata.total_pages || 1
+        });
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal mengambil data user');
@@ -60,7 +65,12 @@ const UserList = () => {
   };
 
   const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination(prev => ({ 
+      ...prev, 
+      page: 1,
+      total: 0,
+      total_pages: 0
+    }));
     fetchUsers();
   };
 
@@ -124,7 +134,12 @@ const UserList = () => {
                       value={roleFilter}
                       onChange={(e) => {
                         setRoleFilter(e.target.value as any);
-                        setPagination(prev => ({ ...prev, page: 1 }));
+                        setPagination(prev => ({ 
+                          ...prev, 
+                          page: 1,
+                          total: 0,
+                          total_pages: 0
+                        }));
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     >
@@ -142,7 +157,12 @@ const UserList = () => {
                       value={statusFilter}
                       onChange={(e) => {
                         setStatusFilter(e.target.value as any);
-                        setPagination(prev => ({ ...prev, page: 1 }));
+                        setPagination(prev => ({ 
+                          ...prev, 
+                          page: 1,
+                          total: 0,
+                          total_pages: 0
+                        }));
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     >
