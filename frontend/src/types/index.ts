@@ -1,3 +1,21 @@
+// API Response types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  status: number;
+  timestamp: string;
+  data: T;
+  errors?: any[];
+  metadata?: PaginationMetadata;
+}
+
+export interface PaginationMetadata {
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
+}
+
 // User types
 export interface User {
   id: number;
@@ -165,12 +183,4 @@ export interface PelanggaranStats {
   pelanggaran_ringan: number;
   pelanggaran_sedang: number;
   pelanggaran_berat: number;
-}
-
-// API Response types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data: T;
-  errors?: any[];
 }

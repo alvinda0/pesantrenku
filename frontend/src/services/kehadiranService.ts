@@ -1,5 +1,5 @@
 import api from '../config/api';
-import { Kehadiran, KehadiranStats, ApiResponse } from '../types';
+import type { Kehadiran, KehadiranStats, ApiResponse } from '../types';
 
 export const kehadiranService = {
   getAll: async (params?: any): Promise<ApiResponse<Kehadiran[]>> => {

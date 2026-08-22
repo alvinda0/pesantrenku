@@ -1,29 +1,81 @@
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
-const { successResponse, errorResponse } = require('../utils/helpers');
+const { successResponse, errorResponse, getPaginationParams, buildPaginationMetadata } = require('../utils/helpers');
 
-// @desc    Get all users
+// @desc    Get all users (with role-based access and pagination)
 // @route   GET /api/users
-// @access  Private (Ustadz only)
+// @access  Private
 const getAllUsers = async (req, res) => {
   try {
     const { role, status, search } = req.query;
+    const currentUser = req.user;
+    
+    // Get pagination params
+    const { page, limit, offset } = getPaginationParams(req.query);
 
     const filters = {};
-    if (role) filters.role = role;
     if (status) filters.status = status;
     if (search) filters.search = search;
 
-    const users = await User.getAll(filters);
+    // Santri hanya bisa lihat data diri sendiri
+    if (currentUser.role === 'santri') {
+      const user = await User.findById(currentUser.id);
+      if (!user) {
+        return errorResponse(res, 'User tidak ditemukan', 404);
+      }
+      
+      // Return single user without pagination for santri
+      return successResponse(res, [user], 'Data user berhasil diambil', 200, {
+        page: 1,
+        limit: 1,
+        total: 1
+      });
+    }
 
-    successResponse(res, users, 'Data user berhasil diambil');
+    // Pengajar bisa lihat semua santri, tapi tidak bisa lihat pengajar lain
+    if (currentUser.role === 'pengajar') {
+      // Default hanya tampilkan santri
+      filters.role_name = role === 'pengajar' ? null : 'santri';
+      
+      // Jika request untuk melihat pengajar, hanya return data pengajar yang sedang login
+      if (role === 'pengajar') {
+        const user = await User.findById(currentUser.id);
+        if (!user) {
+          return errorResponse(res, 'User tidak ditemukan', 404);
+        }
+        return successResponse(res, [user], 'Data user berhasil diambil', 200, {
+          page: 1,
+          limit: 1,
+          total: 1
+        });
+      }
+    }
+
+    // Add pagination to filters
+    filters.limit = limit;
+    filters.offset = offset;
+
+    // Get users and total count
+    const users = await User.getAll(filters);
+    
+    // Get total count for pagination (without limit/offset)
+    const countFilters = { ...filters };
+    delete countFilters.limit;
+    delete countFilters.offset;
+    const total = await User.getCount(countFilters);
+
+    // Build pagination metadata
+    const pagination = buildPaginationMetadata(page, limit, total);
+
+    return successResponse(res, users, 'Data user berhasil diambil', 200, pagination);
+    
   } catch (error) {
     console.error('Get all users error:', error);
-    errorResponse(res, 'Terjadi kesalahan saat mengambil data user');
+    return errorResponse(res, 'Terjadi kesalahan saat mengambil data user', 500);
   }
 };
 
-// @desc    Get user by ID
+// @desc    Get user by ID (with role-based access)
 // @route   GET /api/users/:id
 // @access  Private
 const getUserById = async (req, res) => {
@@ -34,21 +86,30 @@ const getUserById = async (req, res) => {
       return errorResponse(res, 'User tidak ditemukan', 404);
     }
 
-    // Santri can only view their own profile
-    if (req.user.role === 'santri' && user.id !== req.user.id) {
+    const currentUser = req.user;
+
+    // Santri hanya bisa lihat data diri sendiri
+    if (currentUser.role === 'santri' && user.id !== currentUser.id) {
       return errorResponse(res, 'Anda tidak memiliki akses ke data ini', 403);
     }
 
-    successResponse(res, user, 'Data user berhasil diambil');
+    // Pengajar hanya bisa lihat data santri dan diri sendiri, tidak bisa lihat pengajar lain
+    if (currentUser.role === 'pengajar') {
+      if (user.role_nama === 'pengajar' && user.id !== currentUser.id) {
+        return errorResponse(res, 'Anda tidak memiliki akses ke data pengajar lain', 403);
+      }
+    }
+
+    return successResponse(res, user, 'Data user berhasil diambil');
   } catch (error) {
     console.error('Get user by ID error:', error);
-    errorResponse(res, 'Terjadi kesalahan saat mengambil data user');
+    return errorResponse(res, 'Terjadi kesalahan saat mengambil data user', 500);
   }
 };
 
 // @desc    Update user
 // @route   PUT /api/users/:id
-// @access  Private (Ustadz only)
+// @access  Private (Pengajar only)
 const updateUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -73,16 +134,16 @@ const updateUser = async (req, res) => {
 
     const updatedUser = await User.findById(req.params.id);
 
-    successResponse(res, updatedUser, 'Data user berhasil diupdate');
+    return successResponse(res, updatedUser, 'Data user berhasil diupdate');
   } catch (error) {
     console.error('Update user error:', error);
-    errorResponse(res, 'Terjadi kesalahan saat mengupdate data user');
+    return errorResponse(res, 'Terjadi kesalahan saat mengupdate data user', 500);
   }
 };
 
 // @desc    Delete user
 // @route   DELETE /api/users/:id
-// @access  Private (Ustadz only)
+// @access  Private (Pengajar only)
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -98,24 +159,24 @@ const deleteUser = async (req, res) => {
 
     await User.delete(req.params.id);
 
-    successResponse(res, null, 'User berhasil dihapus');
+    return successResponse(res, null, 'User berhasil dihapus');
   } catch (error) {
     console.error('Delete user error:', error);
-    errorResponse(res, 'Terjadi kesalahan saat menghapus user');
+    return errorResponse(res, 'Terjadi kesalahan saat menghapus user', 500);
   }
 };
 
 // @desc    Get user statistics
 // @route   GET /api/users/stats/summary
-// @access  Private (Ustadz only)
+// @access  Private (Pengajar only)
 const getUserStats = async (req, res) => {
   try {
     const stats = await User.getStatistics();
 
-    successResponse(res, stats, 'Statistik user berhasil diambil');
+    return successResponse(res, stats, 'Statistik user berhasil diambil');
   } catch (error) {
     console.error('Get user stats error:', error);
-    errorResponse(res, 'Terjadi kesalahan saat mengambil statistik user');
+    return errorResponse(res, 'Terjadi kesalahan saat mengambil statistik user', 500);
   }
 };
 

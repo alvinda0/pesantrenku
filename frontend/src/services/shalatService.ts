@@ -1,5 +1,5 @@
 import api from '../config/api';
-import { JurnalShalat, JurnalShalatStats, ApiResponse } from '../types';
+import type { JurnalShalat, JurnalShalatStats, ApiResponse } from '../types';
 
 export const shalatService = {
   getAll: async (params?: any): Promise<ApiResponse<JurnalShalat[]>> => {

@@ -1,5 +1,5 @@
 import api from '../config/api';
-import { Pelanggaran, PelanggaranStats, JenisPelanggaran, ApiResponse } from '../types';
+import type { Pelanggaran, PelanggaranStats, JenisPelanggaran, ApiResponse } from '../types';
 
 export const pelanggaranService = {
   getAll: async (params?: any): Promise<ApiResponse<Pelanggaran[]>> => {

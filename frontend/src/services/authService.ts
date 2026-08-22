@@ -1,15 +1,15 @@
 import api from '../config/api';
-import { LoginCredentials, RegisterData, AuthResponse, ApiResponse, User } from '../types';
+import type { LoginCredentials, RegisterData, User, ApiResponse } from '../types';
 
 export const authService = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    return response.data;
+  login: async (credentials: LoginCredentials): Promise<string> => {
+    const response = await api.post<ApiResponse<string>>('/auth/login', credentials);
+    return response.data.data; // Return JWT token directly
   },
 
-  register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', data);
-    return response.data;
+  register: async (data: RegisterData): Promise<string> => {
+    const response = await api.post<ApiResponse<string>>('/auth/register', data);
+    return response.data.data; // Return JWT token directly
   },
 
   getProfile: async (): Promise<ApiResponse<User>> => {

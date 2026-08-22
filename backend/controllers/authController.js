@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const { successResponse, errorResponse } = require('../utils/helpers');
 
 // Generate JWT token
 const generateToken = (user) => {
@@ -9,7 +10,7 @@ const generateToken = (user) => {
     { 
       id: user.id, 
       email: user.email, 
-      role: user.role,
+      role: user.role_nama, // role name from database
       nama: user.nama 
     },
     process.env.JWT_SECRET,
@@ -22,11 +23,7 @@ const register = async (req, res) => {
     // Validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validasi gagal',
-        errors: errors.array()
-      });
+      return errorResponse(res, 'Validasi gagal', 400, errors.array());
     }
 
     const { nama, email, password, role, nis, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, no_telp } = req.body;
@@ -34,10 +31,13 @@ const register = async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email sudah terdaftar'
-      });
+      return errorResponse(res, 'Email sudah terdaftar', 400);
+    }
+
+    // Get role_id from role name
+    const role_id = await User.getRoleIdByName(role || 'santri');
+    if (!role_id) {
+      return errorResponse(res, 'Role tidak valid', 400);
     }
 
     // Hash password
@@ -49,7 +49,7 @@ const register = async (req, res) => {
       nama,
       email,
       password: hashedPassword,
-      role: role || 'santri',
+      role_id,
       nis,
       tempat_lahir,
       tanggal_lahir,
@@ -64,27 +64,16 @@ const register = async (req, res) => {
     // Generate token
     const token = generateToken(user);
 
-    res.status(201).json({
-      success: true,
-      message: 'Registrasi berhasil',
-      data: {
-        user: {
-          id: user.id,
-          nama: user.nama,
-          email: user.email,
-          role: user.role,
-          nis: user.nis
-        },
-        token
-      }
-    });
+    return successResponse(
+      res,
+      token,
+      'Registrasi berhasil',
+      201
+    );
 
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan saat registrasi'
-    });
+    return errorResponse(res, 'Terjadi kesalahan saat registrasi', 500);
   }
 };
 
@@ -94,11 +83,7 @@ const login = async (req, res) => {
     // Validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validasi gagal',
-        errors: errors.array()
-      });
+      return errorResponse(res, 'Validasi gagal', 400, errors.array());
     }
 
     const { email, password } = req.body;
@@ -106,54 +91,33 @@ const login = async (req, res) => {
     // Check if user exists
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email atau password salah'
-      });
+      return errorResponse(res, 'Email atau password salah', 401);
     }
 
     // Check if user is active
     if (user.status !== 'aktif') {
-      return res.status(403).json({
-        success: false,
-        message: 'Akun Anda tidak aktif. Silakan hubungi administrator.'
-      });
+      return errorResponse(res, 'Akun Anda tidak aktif. Silakan hubungi administrator.', 403);
     }
 
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email atau password salah'
-      });
+      return errorResponse(res, 'Email atau password salah', 401);
     }
 
     // Generate token
     const token = generateToken(user);
 
-    res.json({
-      success: true,
-      message: 'Login berhasil',
-      data: {
-        user: {
-          id: user.id,
-          nama: user.nama,
-          email: user.email,
-          role: user.role,
-          nis: user.nis,
-          foto_profile: user.foto_profile
-        },
-        token
-      }
-    });
+    return successResponse(
+      res,
+      token,
+      'Login berhasil',
+      200
+    );
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan saat login'
-    });
+    return errorResponse(res, 'Terjadi kesalahan saat login', 500);
   }
 };
 
@@ -163,23 +127,14 @@ const getProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User tidak ditemukan'
-      });
+      return errorResponse(res, 'User tidak ditemukan', 404);
     }
 
-    res.json({
-      success: true,
-      data: user
-    });
+    return successResponse(res, user, 'Profile berhasil diambil');
 
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan saat mengambil profile'
-    });
+    return errorResponse(res, 'Terjadi kesalahan saat mengambil profile', 500);
   }
 };
 
@@ -199,26 +154,16 @@ const updateProfile = async (req, res) => {
     const updated = await User.update(req.user.id, updateData);
 
     if (!updated) {
-      return res.status(400).json({
-        success: false,
-        message: 'Gagal update profile'
-      });
+      return errorResponse(res, 'Gagal update profile', 400);
     }
 
     const user = await User.findById(req.user.id);
 
-    res.json({
-      success: true,
-      message: 'Profile berhasil diupdate',
-      data: user
-    });
+    return successResponse(res, user, 'Profile berhasil diupdate');
 
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan saat update profile'
-    });
+    return errorResponse(res, 'Terjadi kesalahan saat update profile', 500);
   }
 };
 
@@ -226,11 +171,7 @@ const changePassword = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validasi gagal',
-        errors: errors.array()
-      });
+      return errorResponse(res, 'Validasi gagal', 400, errors.array());
     }
 
     const { old_password, new_password } = req.body;
@@ -241,10 +182,7 @@ const changePassword = async (req, res) => {
     // Check old password
     const isPasswordValid = await bcrypt.compare(old_password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Password lama salah'
-      });
+      return errorResponse(res, 'Password lama salah', 401);
     }
 
     // Hash new password
@@ -254,17 +192,11 @@ const changePassword = async (req, res) => {
     // Update password
     await User.updatePassword(req.user.id, hashedPassword);
 
-    res.json({
-      success: true,
-      message: 'Password berhasil diubah'
-    });
+    return successResponse(res, null, 'Password berhasil diubah');
 
   } catch (error) {
     console.error('Change password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Terjadi kesalahan saat mengubah password'
-    });
+    return errorResponse(res, 'Terjadi kesalahan saat mengubah password', 500);
   }
 };
 

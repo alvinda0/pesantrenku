@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
-import MainLayout from './components/layout/MainLayout';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -37,14 +36,12 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected Routes */}
+          {/* Protected Routes - Mobile Only */}
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <Dashboard />
-                </MainLayout>
+                <Dashboard />
               </ProtectedRoute>
             }
           />
@@ -53,9 +50,7 @@ function App() {
             path="/tahfidz"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <TahfidzList />
-                </MainLayout>
+                <TahfidzList />
               </ProtectedRoute>
             }
           />
@@ -64,9 +59,7 @@ function App() {
             path="/shalat"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <ShalatList />
-                </MainLayout>
+                <ShalatList />
               </ProtectedRoute>
             }
           />
@@ -75,9 +68,7 @@ function App() {
             path="/kehadiran"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <KehadiranList />
-                </MainLayout>
+                <KehadiranList />
               </ProtectedRoute>
             }
           />
@@ -86,9 +77,7 @@ function App() {
             path="/pelanggaran"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <PelanggaranList />
-                </MainLayout>
+                <PelanggaranList />
               </ProtectedRoute>
             }
           />
@@ -97,9 +86,7 @@ function App() {
             path="/users"
             element={
               <ProtectedRoute allowedRoles={['pengajar']}>
-                <MainLayout>
-                  <UserList />
-                </MainLayout>
+                <UserList />
               </ProtectedRoute>
             }
           />
@@ -108,9 +95,7 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <MainLayout>
-                  <Profile />
-                </MainLayout>
+                <Profile />
               </ProtectedRoute>
             }
           />

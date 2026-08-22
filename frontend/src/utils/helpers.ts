@@ -1,7 +1,7 @@
 // Format date to Indonesian format
 export const formatDate = (date: string | Date): string => {
   const d = new Date(date);
-  const options: Intl.DateTimeFormat Options = {
+  const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

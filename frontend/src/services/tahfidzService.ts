@@ -1,5 +1,5 @@
 import api from '../config/api';
-import { Tahfidz, TahfidzStats, ApiResponse } from '../types';
+import type { Tahfidz, TahfidzStats, ApiResponse } from '../types';
 
 export const tahfidzService = {
   getAll: async (params?: any): Promise<ApiResponse<Tahfidz[]>> => {

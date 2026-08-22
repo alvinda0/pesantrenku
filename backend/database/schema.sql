@@ -1,6 +1,6 @@
 -- Create database
-CREATE DATABASE IF NOT EXISTS pesantren_db;
-USE pesantren_db;
+CREATE DATABASE IF NOT EXISTS pesantrenku;
+USE pesantrenku;
 
 -- Table: roles (master data roles)
 CREATE TABLE IF NOT EXISTS roles (
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
   nama VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('santri', 'pengajar') NOT NULL,
+  role_id INT NOT NULL,
   nis VARCHAR(50) UNIQUE,
   tempat_lahir VARCHAR(100),
   tanggal_lahir DATE,
@@ -37,8 +37,9 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('aktif', 'nonaktif', 'alumni') DEFAULT 'aktif',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT,
   INDEX idx_uuid (uuid),
-  INDEX idx_role (role),
+  INDEX idx_role (role_id),
   INDEX idx_status (status),
   INDEX idx_nis (nis)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -97,11 +98,14 @@ CREATE TABLE IF NOT EXISTS kehadiran (
   id INT PRIMARY KEY AUTO_INCREMENT,
   uuid VARCHAR(36) UNIQUE NOT NULL,
   user_id INT NOT NULL,
-  user_type ENUM('santri', 'pengajar') NOT NULL,
   tanggal DATE NOT NULL,
   waktu_masuk TIME,
   waktu_keluar TIME,
   status ENUM('hadir', 'izin', 'sakit', 'alpha') NOT NULL,
+  lokasi VARCHAR(255),
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  foto_kehadiran VARCHAR(255),
   keterangan TEXT,
   dicatat_oleh INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -166,8 +170,8 @@ INSERT INTO jenis_pelanggaran (uuid, nama, tingkat, poin, deskripsi) VALUES
 
 -- Insert default users (1 pengajar dan beberapa santri untuk testing)
 -- Password default: password123 (sudah di-hash dengan bcrypt)
-INSERT INTO users (uuid, nama, email, password, role, nis, jenis_kelamin, status) VALUES
-(UUID(), 'Ustadz Ahmad', 'ahmad@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', 'pengajar', 'PGJ001', 'laki-laki', 'aktif'),
-(UUID(), 'Muhammad Rizki', 'rizki@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', 'santri', 'SNT001', 'laki-laki', 'aktif'),
-(UUID(), 'Ahmad Fadli', 'fadli@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', 'santri', 'SNT002', 'laki-laki', 'aktif'),
-(UUID(), 'Fatimah Azzahra', 'fatimah@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', 'santri', 'SNT003', 'perempuan', 'aktif');
+INSERT INTO users (uuid, nama, email, password, role_id, nis, jenis_kelamin, status) VALUES
+(UUID(), 'Ustadz Ahmad', 'ahmad@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', (SELECT id FROM roles WHERE nama = 'pengajar'), 'PGJ001', 'laki-laki', 'aktif'),
+(UUID(), 'Muhammad Rizki', 'rizki@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', (SELECT id FROM roles WHERE nama = 'santri'), 'SNT001', 'laki-laki', 'aktif'),
+(UUID(), 'Ahmad Fadli', 'fadli@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', (SELECT id FROM roles WHERE nama = 'santri'), 'SNT002', 'laki-laki', 'aktif'),
+(UUID(), 'Fatimah Azzahra', 'fatimah@pesantren.com', '$2b$10$rQ5Z9Iy9WvXQKZ6qYXwzB.VfJtHvZ9xN8y7L6KQz8z9KZ6qYXwzB.', (SELECT id FROM roles WHERE nama = 'santri'), 'SNT003', 'perempuan', 'aktif');

@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import type { User } from '../types';
 import api from '../config/api';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -33,25 +34,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     // Check if user is logged in
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      // Fetch user profile after setting token
+      fetchUserProfile(storedToken);
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
+
+  const fetchUserProfile = async (authToken: string) => {
+    try {
+      // Set token in axios header
+      api.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+      
+      const response = await authService.getProfile();
+      setUser(response.data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // If token invalid, clear storage
+      localStorage.removeItem('token');
+      setToken(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { user, token } = response.data.data;
+      const jwtToken = await authService.login({ email, password });
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', jwtToken);
+      setToken(jwtToken);
 
-      setToken(token);
-      setUser(user);
+      // Set token in axios header
+      api.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`;
+
+      // Fetch user profile
+      const response = await authService.getProfile();
+      setUser(response.data);
+
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login gagal');
     }
@@ -59,14 +82,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
   };
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   return (

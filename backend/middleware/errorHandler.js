@@ -8,6 +8,8 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message: message,
+    status: statusCode,
+    timestamp: new Date().toISOString(),
     error: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 };
@@ -16,7 +18,9 @@ const errorHandler = (err, req, res, next) => {
 const notFound = (req, res, next) => {
   res.status(404).json({
     success: false,
-    message: 'Endpoint tidak ditemukan'
+    message: 'Endpoint tidak ditemukan',
+    status: 404,
+    timestamp: new Date().toISOString()
   });
 };
 

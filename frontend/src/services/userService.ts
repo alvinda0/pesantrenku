@@ -1,8 +1,16 @@
 import api from '../config/api';
-import { User, ApiResponse } from '../types';
+import type { User, ApiResponse } from '../types';
+
+interface GetAllUsersParams {
+  page?: number;
+  limit?: number;
+  role?: string;
+  status?: string;
+  search?: string;
+}
 
 export const userService = {
-  getAll: async (params?: any): Promise<ApiResponse<User[]>> => {
+  getAll: async (params?: GetAllUsersParams): Promise<ApiResponse<User[]>> => {
     const response = await api.get<ApiResponse<User[]>>('/users', { params });
     return response.data;
   },

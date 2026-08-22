@@ -8,7 +8,9 @@ const authenticate = (req, res, next) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Token tidak ditemukan. Silakan login terlebih dahulu.'
+        message: 'Token tidak ditemukan. Silakan login terlebih dahulu.',
+        status: 401,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -18,7 +20,9 @@ const authenticate = (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Token tidak valid atau telah kadaluarsa.'
+      message: 'Token tidak valid atau telah kadaluarsa.',
+      status: 401,
+      timestamp: new Date().toISOString()
     });
   }
 };
@@ -28,7 +32,9 @@ const isPengajar = (req, res, next) => {
   if (req.user.role !== 'pengajar') {
     return res.status(403).json({
       success: false,
-      message: 'Akses ditolak. Hanya pengajar yang dapat mengakses fitur ini.'
+      message: 'Akses ditolak. Hanya pengajar yang dapat mengakses fitur ini.',
+      status: 403,
+      timestamp: new Date().toISOString()
     });
   }
   next();
@@ -39,7 +45,9 @@ const isSantriOrPengajar = (req, res, next) => {
   if (req.user.role !== 'santri' && req.user.role !== 'pengajar') {
     return res.status(403).json({
       success: false,
-      message: 'Akses ditolak.'
+      message: 'Akses ditolak.',
+      status: 403,
+      timestamp: new Date().toISOString()
     });
   }
   next();
